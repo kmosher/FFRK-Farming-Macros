@@ -127,7 +127,7 @@ Next_After_Quit := [-1670,591,0x051A9B]
 ;However, since this relies on exact positioning, the emulator needs to be at the same position each time.
 ;You may need to change the sequence of clicks at the start of Crash_Handle to match how to close and
 ;re-launch FFRK in your emulator
-Enable_Crash_Handle := 1
+Enable_Crash_Handle := true
 
 ;A pixel on the tab that brings up the home screen (not the X, since there is no X you can't close this tab)
 Crash_Home_Tab_Pixel := [-1830, 17,0xA5A6AA]
@@ -216,7 +216,7 @@ Find(this, pixel, radius:=3, timeout:=-1) {
 		}
 		duration := A_TickCount - timeout_start
 		if(duration > timeout * 1000){
-			throw Exception(Format("Can't find pixel: [{:d}, {:d}, {:#X}]", pixel[1], pixel[2], pixel[3]))
+			throw Exception(Format("Can't find pixel: [{:d}, {:d}, {:#X}]", pixel[1], pixel[2], pixel[3]), -1)
 		}
 	}
 }
@@ -225,7 +225,11 @@ FindAndClick(this, pixel, radius:=3, timeout:=-1, click_sleep:=-1) {
 	if (click_sleep == -1) {
 		click_sleep := this.click_sleep
 	}
-	foundPixel := this.find(pixel, radius, timeout)
+	try {
+		foundPixel := this.find(pixel, radius, timeout)
+	} catch e {
+		throw Exception(e.message, -1)
+	}
 	sleep click_sleep
 	PhantomClick(foundPixel)
 }
@@ -234,7 +238,11 @@ FindAndDrag(this, startPixel, endPixel, radius:=3, timeout:=-1, click_sleep:=-1)
 	if (click_sleep == -1) {
 		click_sleep := this.click_sleep
 	}
-	foundPixel := this.find(startPixel, radius, timeout)
+	try {
+		foundPixel := this.find(startPixel, radius, timeout)
+	} catch e {
+		throw Exception(e.message, -1)
+	}
 	sleep click_sleep
 	PhantomClick(foundPixel, endPixel)
 }
