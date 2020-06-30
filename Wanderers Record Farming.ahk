@@ -26,7 +26,7 @@ Click_Timeout := 350
 
 ; Number of seconds to sleep after battle. This is also to lessen stalls where the script
 ; will try to click the next button too soon while things are still fading back in from battle
-Sleep_After_Battle := 3
+Sleep_After_Battle := 3.5
 
 ; Number of seconds to wait after Tyro has moved to see if you triggered an encounter
 ; Increase this if the script keeps triggering crash handlig in the middle of battle
@@ -76,6 +76,17 @@ Command_Sequence["Forest"] := [["Click", [-1669,275,0xFFFFF7]]
     , ["Click", [-1521,307,0xFFFFF7]]
 	, ["Click", [-1589,94,0xFFFFF7]]]
 
+Command_Sequence["Town"] := [["Click", [-1669,279,0xFFFFF7]]
+	, ["Click", [-1669,111,0xFFFFF7]]
+	, ["Click", [-1671,136,0xADF2FE]]
+	, ["Click", [-1758,207,0xFBFBF3]]
+	, ["Click", [-1561,310,0xE2E2DC]]
+	, ["Click", [-1503,305,0x734AEF]]
+	, ["Click", [-1494,232,0x734AEF]]
+	, ["Click", [-1639,507,0xFFFFF7]]
+	, ["Click", [-1813,191,0xFFFFF7]]
+	, ["Click", [-1667,209,0xFFFFF7]]]	
+	
 ; TODO: Map the other dungeons 
 
 ; A pixel near the top or bottom of the screen that's always black while a battle is loading
@@ -284,10 +295,12 @@ Retreat(clicker) {
 	clicker.click(Next_After_Quit)
 }
 
+start_time := A_TickCount
+battle_counter := 0
 Main_Loop:
 loop{
 	try {
-		clicker.click(Records[Record_Choice])
+		clicker.click(Records[Record_Choice],,,1000)
 		clicker.find(Enter_Dungeon_Yellow)
 		clicker.click(Enter_Dungeon_Blue)
 		clicker.click(Go_Blue)
@@ -306,6 +319,7 @@ loop{
 						clicker.find(Loading_Black, 0, Wait_For_Encounter)
 						try {
 							BattleEnd(clicker)
+							battle_counter := battle_counter + 1
 						} catch e {
 							if (Enable_Crash_Handle) {
 								goto Crash_Handle
@@ -365,4 +379,16 @@ try {
 	goto Crash_Handle
 }
 
-^Space::ExitApp
+LogAndExit() {
+	global
+	local runLength, battlesPerHour, msg, msgCSV
+	runLength := (A_TickCount - start_time)/1000
+	battlesPerHour := battle_counter / (runLength) * 60 * 60
+	msg := Format("{:s}: Farmed {:s} for {:f}s. Got {:d} battles. ({:f} battles/h)`n", A_Now, Record_Choice, runLength, battle_counter, battlesPerHour)
+	msgCSV := Format("{:s}, {:s}, {:f}, {:d}, {:f}`n", A_Now, Record_Choice, runLength, battle_counter, battlesPerHour)
+	FileAppend, %msg%, wanderers-farm-log.txt
+	FileAppend, %msgCSV%, wanderers-farm-log.csv
+	ExitApp
+}
+	
+^Space::LogAndExit()
