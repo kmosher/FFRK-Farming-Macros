@@ -24,19 +24,27 @@ Menu_Timeout := 10
 ;(Default := 350)
 Click_Timeout := 350
 
-; Number of seconds to sleep after battle. This is also to lessen stalls where the script
-; will try to click the next button too soon while things are still fading back in from battle
-Sleep_After_Battle := 3.5
-
 ; Number of seconds to wait after Tyro has moved to see if you triggered an encounter
 ; Increase this if the script keeps triggering crash handlig in the middle of battle
 Wait_For_Encounter := 3.5
+
+; Time, in seconds, the script should wait before deciding it can't find the next step in the dungeon and it retreats
+Record_Dungeon_Step_Timeout := 3
+
+; Number of seconds to sleep after battle. This is also to lessen stalls where the script
+; will try to click the next button too soon while things are still fading back in from battle
+Sleep_After_Battle := 7
 
 ;A variable to adjust the "sensitivity" of the Skip Button Detection. The higher it is, the more times it needs to "confirm" the button exists, 
 ; so will click the button slower, but will be less likely to false trigger. The lower it it, the less times it needs to "confirm" the button exists, 
 ; so will click the button faster but it might trigger falsely.
 ;(Default := 3)
 Skip_Sensitivity := 3
+
+; If this is true, after every click, the script will return your mouse pointer
+; to where it was originally. Disabling this will make it easier to see where the
+; script is clicking. Useful if you need to debug it where it's going wrong.
+Remember_Mouse_Position := true
 
 ; Pixels from the 4 different dungeon banners in Wanderer's Record
 ; Technically, you only need to fill in the one you want to farm
@@ -47,7 +55,7 @@ Records["Cavern"] := [-1531,375,0x4C033B],
 Records["Shrine"] := [-1527,443,0x6D0F35],
 
 ; Which record to farm
-Record_Choice := "Forest"
+Record_Choice := "Town"
 
 ;A YELLOW pixel in the center of the screen that can sometimes be covered up by the grey "Loading" dialog. This is to prevent misclicks of the Enter Dungeon button when it is not active.
 Enter_Dungeon_Yellow := [-1686,384,0xFADAA2]
@@ -78,27 +86,23 @@ Command_Sequence["Forest"] := [["Click", [-1669,275,0xFFFFF7]]
 
 Command_Sequence["Town"] := [["Click", [-1669,279,0xFFFFF7]]
 	, ["Click", [-1669,111,0xFFFFF7]]
-	, ["Click", [-1671,136,0xADF2FE]]
+	, ["Click", [-1669,136,0xFFFFF7]]
 	, ["Click", [-1758,207,0xFBFBF3]]
 	, ["Click", [-1561,310,0xE2E2DC]]
-	, ["Click", [-1503,305,0x734AEF]]
-	, ["Click", [-1494,232,0x734AEF]]
-	, ["Click", [-1639,507,0xFFFFF7]]
-	, ["Click", [-1813,191,0xFFFFF7]]
-	, ["Click", [-1667,209,0xFFFFF7]]]	
+	, ["Click", [-1580,210,0xFFFFF7]]]
 	
 ; TODO: Map the other dungeons 
 
 ; A pixel near the top or bottom of the screen that's always black while a battle is loading
 Loading_Black := [-1677,673,0x000000]
 	
-;Differently coloured pixels in the Skip Button
-;For best results pick two different blue ones and a white one.
+; Differently coloured pixels in the Skip Button
+; For best results pick two different blue ones and a white one.
 Top_Skip := [-1531,588,0x1F33AF]
 Middle_Skip := [-1536,601,0xFFFFFF]
 Bottom_Skip := [-1533,616,0x01186F]
 
-;A WHITE pixel in the "Next" button text after the battle is won, will be used for all the next buttons.
+; A WHITE pixel in the "Next" button text after the battle is won, will be used for all the next buttons.
 ;The colour code should be 0xFFFFFF unless you've got a really weird setup.
 Next_White := [-1660,598,0xFFFFFF]
 
@@ -135,7 +139,7 @@ Crash_Close_Pixel := [-1698, 17, 0x1282B8]
 ;Please note that when you close an app on MeMu it will go to the default launcher, not Nova Launcher
 ;As such please use the position of the app on the default launcher.
 ;Searches a 50x50 box on the specified pixel.
-Crash_App_Launch := [-1597,114,0x9F7366]
+Crash_App_Launch := [-1601,112,0xF3F5F1]
 
 ;A BLUE pixel on the blue "Play" button when FFRK launches.
 Crash_Play_Blue := [-1667,572,0x051A99]
@@ -169,7 +173,8 @@ Crash_Wanderers_Record := [-1536,146,0x6CDC74]
 ; Quickly steal the mouse to click on a position and then
 ; return the pointer and focus to where it was previously
 PhantomClick(startPixel, endPixel:=false) {
-	BlockInput, On
+	global Remember_Mouse_Position
+	BlockInput, MouseMove
 	MouseGetPos oldX, oldY
 	WinGetTitle, TitleA, A
 	if(endPixel) {
@@ -185,9 +190,11 @@ PhantomClick(startPixel, endPixel:=false) {
 		MouseClick, Left, startPixel[1], startPixel[2], 1, 0
 	}
 	sleep 10
-	MouseMove %oldX%, %oldY%, 0
-	WinActivate, %TitleA%
-	BlockInput, Off
+	if (Remember_Mouse_Position) {
+		MouseMove %oldX%, %oldY%, 0
+		WinActivate, %TitleA%
+	}
+	BlockInput, MouseMoveOff
 }
 
 MenuClicker := {}
@@ -314,7 +321,7 @@ loop{
 				command := commands[i]
 ;				MsgBox % Format("{:s}: [{:s}], [{:s}]", command[1], join(command[2]), join(command[3]))
 				if(command[1] == "Click") {
-					clicker.click(command[2], 24)
+					clicker.click(command[2], 24, Record_Dungeon_Step_Timeout)
 					try { 
 						clicker.find(Loading_Black, 0, Wait_For_Encounter)
 						try {
